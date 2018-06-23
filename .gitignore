@@ -1,4 +1,4 @@
-# Compiled class file
+# Compiled java class file
 *.class
 
 # Log file
@@ -11,7 +11,6 @@
 .mtj.tmp/
 
 # Package Files #
-*.jar
 *.war
 *.nar
 *.ear
@@ -22,7 +21,7 @@
 # Kdiff3 files
 *.orig
 
-# maven ignore
+# Maven directory
 target/
 
 # eclipse files
