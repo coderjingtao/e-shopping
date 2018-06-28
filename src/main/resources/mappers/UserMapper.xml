@@ -151,4 +151,13 @@
       update_time = now()
     where id = #{id,jdbcType=INTEGER}
   </update>
+  <select id="checkUsername" parameterType="string" resultType="int">
+    SELECT count(1) from eshop_user where username = #{username}
+  </select>
+  <select id="selectLogin" parameterType="map" resultMap="BaseResultMap">
+    SELECT
+    <include refid="Base_Column_List" />
+    from eshop_user
+    where username = #{username} and password = #{password}
+  </select>
 </mapper>
