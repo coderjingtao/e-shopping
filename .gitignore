@@ -30,8 +30,8 @@ target/
 .project
 
 # IntelliJ IDEA files
-./idea
-/idea/
+.idea/
+.idea
 *.ipr
 *.iml
 *.iws
