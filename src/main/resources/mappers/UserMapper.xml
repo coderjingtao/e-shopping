@@ -151,13 +151,40 @@
       update_time = now()
     where id = #{id,jdbcType=INTEGER}
   </update>
+
   <select id="checkUsername" parameterType="string" resultType="int">
     SELECT count(1) from eshop_user where username = #{username}
   </select>
+
+  <select id="checkEmail" parameterType="string" resultType="int">
+    SELECT count(1) from eshop_user where email = #{email}
+  </select>
+
+  <select id="checkEmailByUserId" parameterType="map" resultType="int">
+    SELECT count(1) from eshop_user where email = #{email} and id != #{userId}
+  </select>
+
   <select id="selectLogin" parameterType="map" resultMap="BaseResultMap">
     SELECT
     <include refid="Base_Column_List" />
     from eshop_user
     where username = #{username} and password = #{password}
+  </select>
+  
+  <select id="selectQuestionByUsername" parameterType="string" resultType="string">
+    SELECT question from eshop_user where username=#{username}
+  </select>
+  
+  <select id="checkAnswer" parameterType="map" resultType="int">
+    SELECT count(1) from eshop_user where username=#{username} and question=#{question} and answer=#{answer}
+  </select>
+  
+  <update id="updatePasswordByUsername" parameterType="map">
+    UPDATE eshop_user SET password = #{md5Password}, update_time = now()
+    where username = #{username}
+  </update>
+
+  <select id="checkPassword" parameterType="map" resultType="int">
+    SELECT COUNT(1) from eshop_user where id = #{userId} and password = #{password}
   </select>
 </mapper>
