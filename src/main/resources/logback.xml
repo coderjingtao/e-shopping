@@ -11,10 +11,10 @@
     </appender>
 
     <appender name="eshop" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <File>d:/ecommerce/logs/eshop.log</File>
+        <File>C:/tomcat/logs/eshop.log</File>
         <!--File>/developer/apache-tomcat-7.0.73/logs/eshop.log</File-->
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>d:/ecommerce/logs/eshop.log.%d{yyyy-MM-dd}.gz</fileNamePattern>
+            <fileNamePattern>C:/tomcat/logs/eshop.log.%d{yyyy-MM-dd}.gz</fileNamePattern>
             <append>true</append>
             <maxHistory>10</maxHistory>
         </rollingPolicy>
@@ -25,11 +25,11 @@
 
 
     <appender name="error" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <File>d:/ecommerce/logs/error.log</File>
+        <File>C:/tomcat/logs/error.log</File>
         <!--File>/developer/apache-tomcat-7.0.73/logs/error.log</File-->
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <!--fileNamePattern>/devsoft/apache-tomcat-7.0.73/logs/error.log.%d{yyyy-MM-dd}.gz</fileNamePattern-->
-            <fileNamePattern>d:/ecommerce/logs/error.log.%d{yyyy-MM-dd}.gz</fileNamePattern>
+            <fileNamePattern>C:/tomcat/logs/error.log.%d{yyyy-MM-dd}.gz</fileNamePattern>
             <append>true</append>
             <maxHistory>10</maxHistory>
         </rollingPolicy>
