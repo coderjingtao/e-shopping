@@ -16,7 +16,7 @@ public class Constant {
 
     public interface Role{
         int ROLE_CUSTOMER = 0;
-        int ROLE_ADMINISTRTOR =1;
+        int ROLE_ADMINISTRATOR =1;
     }
 
     public enum ProductStatusEnum {
@@ -46,5 +46,54 @@ public class Constant {
 
         String LIMIT_NUM_FAIL = "LIMIT_NUM_FAIL";
         String LIMIT_NUM_SUCCESS = "LIMIT_NUM_SUCCESS";
+    }
+
+    public enum OrderStatus{
+        CANCELED(0,"Order is canceled by user"),
+        UNPAID(10,"Order is still unpaid."),
+        PAID(20,"Order is paid yet."),
+        SHIPPED(40,"Order is shipping now."),
+        ORDER_SUCCESS(50,"Order is finished."),
+        ORDER_CLOSE(60,"Order is closed.")
+        ;
+
+        OrderStatus(int code,String value){
+            this.code = code;
+            this.value = value;
+        }
+        private int code;
+        private String value;
+        public int getCode() {
+            return code;
+        }
+        public String getValue() {
+            return value;
+        }
+    }
+
+    public interface AlipayCallback{
+        String TRADE_STATUS_WAIT_BUYER_PAY = "WAIT_BUYER_PAY";
+        String TRADE_STATUS_TRADE_SUCCESS = "TRADE_SUCCESS";
+
+        String RESPONSE_SUCCESS = "success";
+        String RESPONSE_FAILED = "failed";
+    }
+
+    public enum PayPlatform{
+        ALIPAY(1,"Alipay"),
+        WECHAT(2,"Wechat pay");
+
+        PayPlatform(int code,String value){
+            this.code = code;
+            this.value = value;
+        }
+        private int code;
+        private String value;
+        public int getCode() {
+            return code;
+        }
+        public String getValue() {
+            return value;
+        }
     }
 }

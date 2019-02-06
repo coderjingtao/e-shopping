@@ -29,7 +29,7 @@ public class UserManageController {
         ServerResponse<User> response = iUserService.login(username,password);
         if(response.isSuccess()){
             User user = response.getData();
-            if(user.getRole() == Constant.Role.ROLE_ADMINISTRTOR){
+            if(user.getRole() == Constant.Role.ROLE_ADMINISTRATOR){
                 session.setAttribute(Constant.CURRENT_USER,user);
                 return response;
             }else{

@@ -265,7 +265,8 @@
           <target>1.8</target>
           <encoding>UTF-8</encoding>
           <compilerArguments>
-            <!--the address of project lib in production environment-->
+            <!-- Package all the libs in the following directory into project -->
+            <!-- The directory is also the real lib directory in production environment-->
             <extdirs>${project.basedir}/src/main/webapp/WEB-INF/lib</extdirs>
           </compilerArguments>
         </configuration>
