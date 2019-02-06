@@ -35,6 +35,8 @@ public class MD5Util {
     }
 
     public static String MD5EncodeUtf8(String origin) {
+        //Get the encoding salt value from the file "eshop.properties" by the key "password.salt"
+        //When cannot find the key, return a empty string
         origin = origin + PropertiesUtil.getProperty("password.salt", "");
         return MD5Encode(origin, "utf-8");
     }

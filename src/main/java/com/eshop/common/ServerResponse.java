@@ -7,10 +7,11 @@ import java.io.Serializable;
 
 /**
  * Created by Liujingtao on 2018/6/28.
+ * A common response object for json files
  */
 
-//in json file, there always are pairs of key - value
-//this can ensure that if the value is null, the key dose not display
+//In json file, we need it display pairs of key and value.
+//This can ensure that if the value is null, the key dose not display, such as { "data": null }
 @JsonSerialize(include =  JsonSerialize.Inclusion.NON_NULL)
 public class ServerResponse<T> implements Serializable {
 
@@ -36,7 +37,7 @@ public class ServerResponse<T> implements Serializable {
         this.data = data;
     }
 
-    //it ensure the isSuccess will not display in json file
+    //It ensures the return value of isSuccess method will not be displayed in the return json file
     @JsonIgnore
     public boolean isSuccess(){
         return this.status == ResponseCode.SUCCESS.getCode();

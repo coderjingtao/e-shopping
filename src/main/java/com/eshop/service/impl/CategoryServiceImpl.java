@@ -17,7 +17,8 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Created by Liujingtao on 2018/7/6.
+ * Description: Category Management Service Implementation
+ * Created by Jingtao Liu on 2018/7/6.
  */
 @Service("iCategoryService")
 public class CategoryServiceImpl implements ICategoryService {
@@ -73,9 +74,8 @@ public class CategoryServiceImpl implements ICategoryService {
         recursiveSearch(categorySet,categoryId);
         List<Integer> categoryIds = Lists.newArrayList();
         if(categorySet.size()>0){
-            for(Category item : categorySet){
+            for(Category item : categorySet)
                 categoryIds.add(item.getId());
-            }
         }
         return ServerResponse.createBySuccessData(categoryIds);
     }
@@ -87,7 +87,7 @@ public class CategoryServiceImpl implements ICategoryService {
         if(parent != null){
             categorySet.add(parent);
         }
-        // children nodes of current node
+        // Query children nodes of current node
         List<Category> children = categoryMapper.selectByParentId(parentId);
         if(children.size()>0){
             for(Category child : children){

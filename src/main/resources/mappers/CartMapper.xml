@@ -101,7 +101,7 @@
         create_time = #{createTime,jdbcType=TIMESTAMP},
       </if>
       <if test="updateTime != null" >
-        now(),
+        update_time = now(),
       </if>
     </set>
     where id = #{id,jdbcType=INTEGER}
@@ -116,4 +116,47 @@
       update_time = now()
     where id = #{id,jdbcType=INTEGER}
   </update>
+  <select id="selectCartByUserIdAndProductId" resultMap="BaseResultMap" parameterType="map">
+    SELECT
+        <include refid="Base_Column_List"/>
+    FROM eshop_cart
+    WHERE user_id = #{userId}
+    AND product_id = #{productId}
+  </select>
+  <select id="selectCartByUserId" resultMap="BaseResultMap" parameterType="int">
+    SELECT
+    <include refid="Base_Column_List"/>
+    FROM eshop_cart
+    WHERE user_id = #{userId}
+  </select>
+  <select id="uncheckedNumOfCartItemByUserId" resultType="int" parameterType="int">
+    SELECT
+      count(1)
+    FROM eshop_cart
+    WHERE checked = 0
+    AND user_id = #{userId}
+  </select>
+  <delete id="removeProductByUserIdAndProductIds" parameterType="map">
+    delete from eshop_cart
+    WHERE user_id = #{userId}
+    <if test="productIds != null">
+      AND product_id in
+      <foreach collection="productIds" item="productId" index="index" open="(" separator="," close=")">
+          #{productId}
+      </foreach>
+    </if>
+  </delete>
+  <update id="checkedOrUncheckedProduct" parameterType="map">
+    UPDATE eshop_cart
+    SET checked = #{checked} , update_time = now()
+    WHERE user_id = #{userId}
+    <if test="productId != null">
+      AND product_id = #{productId}
+    </if>
+  </update>
+  <select id="selectCartProductCount" parameterType="int" resultType="int">
+    SELECT IFNULL(sum(quantity),0) as COUNT
+    FROM eshop_cart
+    WHERE user_id = #{userId}
+  </select>
 </mapper>

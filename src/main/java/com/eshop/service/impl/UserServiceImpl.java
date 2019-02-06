@@ -14,7 +14,8 @@ import org.springframework.stereotype.Service;
 import java.util.UUID;
 
 /**
- * Created by Liujingtao on 2018/6/28.
+ * Description: User Service Implementation
+ * Created by Jingtao Liu on 2018/6/28.
  */
 @Service("iUserService")
 public class UserServiceImpl implements IUserService{
@@ -109,17 +110,18 @@ public class UserServiceImpl implements IUserService{
         int resultCount = userMapper.checkAnswer(username, question, answer);
         if (resultCount > 0){
             String forgetToken = UUID.randomUUID().toString();
-            //store this token in memory and set its time limit
+            //store this token as a map {username:uuid} in server memory
+            // and set its minimum, maximum and time limit
             TokenCache.setKey(TokenCache.TOKEN_PREFIX + username, forgetToken);
             return ServerResponse.createBySuccessData(forgetToken);
         }
-        return ServerResponse.createByErrorMsg("Find password answer is wrong.");
+        return ServerResponse.createByErrorMsg("Find password answer is incorrect.");
     }
 
     @Override
     public ServerResponse<String> forgetResetPassword(String username, String newPassword, String forgetToken) {
         if(StringUtils.isBlank(forgetToken)){
-            return ServerResponse.createByErrorMsg("token is blank");
+            return ServerResponse.createByErrorMsg("Token is blank");
         }
         ServerResponse validResponse = this.checkValid(username,Constant.USERNAME);
         if(validResponse.isSuccess()){
@@ -150,21 +152,23 @@ public class UserServiceImpl implements IUserService{
         user.setPassword(MD5Util.MD5EncodeUtf8(newPassword));
         int updateCount = userMapper.updateByPrimaryKeySelective(user);
         if(updateCount > 0){
-            return ServerResponse.createBySuccessMsg("Reset Password Successfully");
+            return ServerResponse.createBySuccessMsg("Reset Password Successfully.");
         }
         return ServerResponse.createByErrorMsg("Reset Password failed.");
     }
 
     @Override
     public ServerResponse<User> updateUserInfo(User user) {
-        //username cannot be updated
+
+        //Validate the incoming email has existed yet, and if it has existed, it must belong to current user
         int resultCount = userMapper.checkEmailByUserId(user.getEmail(),user.getId());
         if(resultCount > 0){
             return ServerResponse.createByErrorMsg("This Email exists.");
         }
+        //Updating the username is not allowed. So it's not necessary to pass.
         User updateUser = new User();
-        updateUser.setId(user.getId());
-        updateUser.setEmail(user.getEmail());
+        updateUser.setId(user.getId()); //Id is primary key for updating, it must be passed.
+        updateUser.setEmail(user.getEmail());//Just update the 4 fields below.
         updateUser.setPhone(user.getPhone());
         updateUser.setQuestion(user.getQuestion());
         updateUser.setAnswer(user.getAnswer());
