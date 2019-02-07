@@ -211,4 +211,17 @@
     FROM eshop_order
     WHERE order_no = #{orderNo}
   </select>
+
+  <select id="selectByUserId" parameterType="int" resultMap="BaseResultMap">
+    SELECT <include refid="Base_Column_List"/>
+    FROM eshop_order
+    WHERE user_id = #{userId}
+    ORDER BY create_time desc
+  </select>
+  
+  <select id="selectAll" resultMap="BaseResultMap">
+    SELECT <include refid="Base_Column_List"/>
+    FROM eshop_order
+    ORDER BY create_time desc
+  </select>
 </mapper>

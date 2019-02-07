@@ -20,7 +20,6 @@ public class OrderVo {
 
     private Integer status;
 
-
     private String statusDesc;
 
     private String paymentTime;
@@ -33,7 +32,6 @@ public class OrderVo {
 
     private String createTime;
 
-    //订单的明细
     private List<OrderItemVo> orderItemVoList;
 
     private String imageHost;

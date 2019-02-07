@@ -12,21 +12,22 @@ import com.alipay.demo.trade.service.impl.AlipayTradeServiceImpl;
 import com.alipay.demo.trade.utils.ZxingUtils;
 import com.eshop.common.Constant;
 import com.eshop.common.ServerResponse;
-import com.eshop.dao.OrderItemMapper;
-import com.eshop.dao.OrderMapper;
-import com.eshop.dao.PayInfoMapper;
-import com.eshop.pojo.Order;
-import com.eshop.pojo.OrderItem;
-import com.eshop.pojo.PayInfo;
+import com.eshop.dao.*;
+import com.eshop.pojo.*;
 import com.eshop.service.IOrderService;
 import com.eshop.util.BigDecimalUtil;
 import com.eshop.util.DateTimeUtil;
 import com.eshop.util.FTPUtil;
 import com.eshop.util.PropertiesUtil;
+import com.eshop.vo.OrderItemVo;
+import com.eshop.vo.OrderProductVo;
 import com.eshop.vo.OrderVo;
+import com.eshop.vo.ShippingVo;
+import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,9 +36,8 @@ import org.springframework.stereotype.Service;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.math.BigDecimal;
+import java.util.*;
 
 /**
  * Description: The Implementation of Order Service, divided into frontend and backend.
@@ -54,6 +54,12 @@ public class OrderServiceImpl implements IOrderService {
     private OrderItemMapper orderItemMapper;
     @Autowired
     private PayInfoMapper payInfoMapper;
+    @Autowired
+    private CartMapper cartMapper;
+    @Autowired
+    private ProductMapper productMapper;
+    @Autowired
+    private ShippingMapper shippingMapper;
 
     @Override
     public ServerResponse pay(Long orderNo, Integer userId, String path) {
@@ -215,7 +221,7 @@ public class OrderServiceImpl implements IOrderService {
     public ServerResponse queryIsOrderPaid(Integer userId, Long orderNo) {
         Order order = orderMapper.selectByOrderNoAndUserId(orderNo, userId);
         if(order == null)
-            return ServerResponse.createByErrorMsg("User has no this order.");
+            return ServerResponse.createByErrorMsg("Cannot find this order.");
         if(order.getStatus() >= Constant.OrderStatus.PAID.getCode())
             return ServerResponse.createBySuccess();
         return ServerResponse.createByError();
@@ -223,46 +229,309 @@ public class OrderServiceImpl implements IOrderService {
 
     @Override
     public ServerResponse createOrder(Integer userId, Integer shippingId) {
-        return null;
+        List<Cart> selectedCartItems = cartMapper.selectCheckedCartItemByUserId(userId);
+        //1.transform Cart Items into Order Items
+        ServerResponse response = transformCartItemIntoOrderItem(userId,selectedCartItems);
+        if(!response.isSuccess())
+            return response;
+        List<OrderItem> orderItems = (List<OrderItem>)response.getData();
+        BigDecimal orderTotalPrice = computeOrderTotalPrice(orderItems);
+        //2.generate a main order in database
+        Order order = assembleOrder(userId,shippingId,orderTotalPrice);
+        if(order == null)
+            return ServerResponse.createByErrorMsg("Create Order Failed.");
+        if(CollectionUtils.isEmpty(orderItems))
+            return ServerResponse.createByErrorMsg("No item is selected in cart.");
+        for(OrderItem orderItem: orderItems)
+            orderItem.setOrderNo(order.getOrderNo());
+        //3.generate a batch of order items in database
+        orderItemMapper.batchInsert(orderItems);
+        //4.reduce stock of products in the order
+        reduceStock(orderItems);
+        //5.clear up selectedCartItems in user's cart
+        cleanSelectedCartItems(selectedCartItems);
+        //6.assemble and return Order View Objects to display on website for front-end users
+        OrderVo orderVo = assembleOrderVo(order,orderItems);
+
+        return ServerResponse.createBySuccessData(orderVo);
+    }
+
+    /**
+     * It's necessary to transform Cart Item into Order Item
+     * as the product's price or status have been changed compared with its original when it was put into cart.
+     */
+    private  ServerResponse transformCartItemIntoOrderItem(Integer userId, List<Cart> cartItems){
+        if(CollectionUtils.isEmpty(cartItems))
+            return ServerResponse.createByErrorMsg("No item is selected in cart.");
+
+        List<OrderItem> orderItems = Lists.newArrayList();
+        for(Cart cartItem: cartItems){
+            OrderItem orderItem = new OrderItem();
+            Product product = productMapper.selectByPrimaryKey(cartItem.getProductId());
+            if(Constant.ProductStatusEnum.ON_SALE.getCode() != product.getStatus())
+                return ServerResponse.createByErrorMsg(product.getName()+" is off-shelf yet.");
+            if(cartItem.getQuantity() > product.getStock())
+                return ServerResponse.createByErrorMsg(product.getName()+" is insufficient to buy.");
+            //begin to transform
+            orderItem.setUserId(userId);
+            orderItem.setProductId(product.getId());
+            orderItem.setProductName(product.getName());
+            orderItem.setProductImage(product.getMainImage());
+            orderItem.setCurrentUnitPrice(product.getPrice());
+            orderItem.setQuantity(cartItem.getQuantity());
+            orderItem.setTotalPrice(BigDecimalUtil.multiply(product.getPrice().doubleValue(),cartItem.getQuantity()));
+            orderItems.add(orderItem);
+        }
+        return  ServerResponse.createBySuccessData(orderItems);
+    }
+
+    private BigDecimal computeOrderTotalPrice(List<OrderItem> orderItems){
+        BigDecimal total = new BigDecimal("0");
+        for(OrderItem orderItem : orderItems)
+            total = BigDecimalUtil.add(total.doubleValue(),orderItem.getTotalPrice().doubleValue());
+        return total;
+    }
+
+    private Order assembleOrder(Integer userId, Integer shippingId, BigDecimal totalPrice){
+        Order order = new Order();
+        long orderNo = generateOrderNo();
+        order.setOrderNo(orderNo);
+        order.setUserId(userId);
+        order.setStatus(Constant.OrderStatus.UNPAID.getCode());
+        order.setPostage(0);
+        order.setPaymentType(Constant.PaymentType.ONLINE_PAY.getCode());
+        order.setPayment(totalPrice);
+        order.setShippingId(shippingId);
+        int rowCount = orderMapper.insert(order);
+        if(rowCount <= 0)
+            return null;
+        return order;
+    }
+
+    /**
+     * A simple way to generate a order NO., which needs to be improved for distributed system.
+     */
+    private long generateOrderNo(){
+        long currentTime = System.currentTimeMillis();
+        return currentTime + new Random().nextInt(100);
+    }
+
+    /**
+     * Update the stock of products in a order which is created by user
+     */
+    private void reduceStock(List<OrderItem> orderItems){
+        for (OrderItem orderItem: orderItems) {
+            Product product = productMapper.selectByPrimaryKey(orderItem.getProductId());
+            product.setStock(product.getStock() - orderItem.getQuantity());
+            productMapper.updateByPrimaryKeySelective(product);
+        }
+    }
+
+    /**
+     * Clean up the selected cart items in a order which is created by user
+     */
+    private void cleanSelectedCartItems(List<Cart> selectedCartItems){
+        for(Cart cartItem : selectedCartItems)
+            cartMapper.deleteByPrimaryKey(cartItem.getId());
+    }
+
+    /**
+     * Assemble a Order View Object to display for front-end users
+     */
+    private OrderVo assembleOrderVo(Order order, List<OrderItem> orderItems){
+        OrderVo orderVo =  new OrderVo();
+        orderVo.setOrderNo(order.getOrderNo());
+        orderVo.setPayment(order.getPayment());
+        orderVo.setPostage(order.getPostage());
+
+        orderVo.setPaymentType(order.getPaymentType());
+        orderVo.setPaymentTypeDesc(Constant.PaymentType.codeOf(order.getPaymentType()).getValue());
+
+        orderVo.setStatus(order.getStatus());
+        orderVo.setStatusDesc(Constant.OrderStatus.codeOf(order.getStatus()).getValue());
+
+        orderVo.setShippingId(order.getShippingId());
+        Shipping shipping = shippingMapper.selectByPrimaryKey(order.getShippingId());
+        if(shipping != null){
+            orderVo.setReceiverName(shipping.getReceiverName());
+            orderVo.setShippingVo(assembleShippingVo(shipping));
+        }
+
+        orderVo.setPaymentTime(DateTimeUtil.dateToStr(order.getPaymentTime()));
+        orderVo.setSendTime(DateTimeUtil.dateToStr(order.getSendTime()));
+        orderVo.setEndTime(DateTimeUtil.dateToStr(order.getEndTime()));
+        orderVo.setCreateTime(DateTimeUtil.dateToStr(order.getCreateTime()));
+        orderVo.setCloseTime(DateTimeUtil.dateToStr(order.getCloseTime()));
+
+        orderVo.setImageHost(PropertiesUtil.getProperty("ftp.server.http.prefix"));
+
+        List<OrderItemVo> orderItemVoList = Lists.newArrayList();
+        for(OrderItem orderItem: orderItems){
+            OrderItemVo orderItemVo = assembleOrderItemVo(orderItem);
+            orderItemVoList.add(orderItemVo);
+        }
+
+        orderVo.setOrderItemVoList(orderItemVoList);
+        return orderVo;
+    }
+    /**
+     * Assemble a Shipping View Object to display for front-end users
+     */
+    private ShippingVo assembleShippingVo(Shipping shipping){
+        ShippingVo shippingVo = new ShippingVo();
+        shippingVo.setReceiverName(shipping.getReceiverName());
+        shippingVo.setReceiverAddress(shipping.getReceiverAddress());
+        shippingVo.setReceiverProvince(shipping.getReceiverProvince());
+        shippingVo.setReceiverCity(shipping.getReceiverCity());
+        shippingVo.setReceiverDistrict(shipping.getReceiverDistrict());
+        shippingVo.setReceiverMobile(shipping.getReceiverMobile());
+        shippingVo.setReceiverZip(shipping.getReceiverZip());
+        shippingVo.setReceiverPhone(shipping.getReceiverPhone());
+        return shippingVo;
+    }
+
+    /**
+     * Assemble a Order Item View Object to display for front-end users
+     */
+    private OrderItemVo assembleOrderItemVo(OrderItem orderItem){
+        OrderItemVo orderItemVo = new OrderItemVo();
+        orderItemVo.setOrderNo(orderItem.getOrderNo());
+        orderItemVo.setProductId(orderItem.getProductId());
+        orderItemVo.setProductName(orderItem.getProductName());
+        orderItemVo.setProductImage(orderItem.getProductImage());
+        orderItemVo.setCurrentUnitPrice(orderItem.getCurrentUnitPrice());
+        orderItemVo.setQuantity(orderItem.getQuantity());
+        orderItemVo.setTotalPrice(orderItem.getTotalPrice());
+        orderItemVo.setCreateTime(DateTimeUtil.dateToStr(orderItem.getCreateTime()));
+        return orderItemVo;
     }
 
     @Override
     public ServerResponse<String> cancel(Integer userId, Long orderNo) {
-        return null;
+        Order order = orderMapper.selectByOrderNoAndUserId(orderNo, userId);
+        if(order == null)
+            return ServerResponse.createByErrorMsg("Cannot find this order.");
+        if(order.getStatus() == Constant.OrderStatus.CANCELED.getCode())
+            return ServerResponse.createByErrorMsg("This order was canceled before.");
+        if(order.getStatus() != Constant.OrderStatus.UNPAID.getCode())
+            return ServerResponse.createByErrorMsg("This order is paid yet.");
+        Order updateOrder = new Order();
+        updateOrder.setId(order.getId());
+        updateOrder.setStatus(Constant.OrderStatus.CANCELED.getCode());
+        int rowCount = orderMapper.updateByPrimaryKeySelective(updateOrder);
+        if(rowCount <= 0)
+            return ServerResponse.createByError();
+        return ServerResponse.createBySuccess();
     }
 
+    /**
+     * Get the products of order from cart for filling in order page and confirming order page.
+     * 展示未支付的订单中的商品列表，用于从购物车到订单生成之间的订单填写页和订单确认页的订单商品展示
+     */
     @Override
-    public ServerResponse getOrderCartProduct(Integer userId) {
-        return null;
+    public ServerResponse getOrderProductsFromCart(Integer userId) {
+        OrderProductVo orderProductVo = new OrderProductVo();
+        List<Cart> selectedCartItems = cartMapper.selectCheckedCartItemByUserId(userId);
+        ServerResponse response = this.transformCartItemIntoOrderItem(userId,selectedCartItems);
+        if(!response.isSuccess())
+            return response;
+        List<OrderItem> orderItems = (List<OrderItem>)response.getData();
+
+        List<OrderItemVo> orderItemVoList = Lists.newArrayList();
+        BigDecimal totalPrice = new BigDecimal("0");
+        for(OrderItem orderItem: orderItems){
+            totalPrice = BigDecimalUtil.add(totalPrice.doubleValue(),orderItem.getTotalPrice().doubleValue());
+            orderItemVoList.add(assembleOrderItemVo(orderItem));
+        }
+        orderProductVo.setProductTotalPrice(totalPrice);
+        orderProductVo.setOrderItemVoList(orderItemVoList);
+        orderProductVo.setImageHost(PropertiesUtil.getProperty("ftp.server.http.prefix"));
+        return ServerResponse.createBySuccessData(orderProductVo);
     }
 
     @Override
     public ServerResponse<OrderVo> getOrderDetail(Integer userId, Long orderNo) {
-        return null;
+        Order order = orderMapper.selectByOrderNoAndUserId(orderNo, userId);
+        if(order != null){
+            List<OrderItem> orderItems = orderItemMapper.selectByOrderNoAndUserId(orderNo, userId);
+            OrderVo orderVo = assembleOrderVo(order,orderItems);
+            return ServerResponse.createBySuccessData(orderVo);
+        }
+        return ServerResponse.createByErrorMsg("Cannot find this order.");
     }
 
     @Override
     public ServerResponse<PageInfo> getOrderList(Integer userId, int pageNum, int pageSize) {
-        return null;
+        PageHelper.startPage(pageNum, pageSize);
+        List<Order> orderList = orderMapper.selectByUserId(userId);
+        List<OrderVo> orderVoList = assembleOrderVoList(orderList,userId);
+        PageInfo page = new PageInfo<>(orderList);
+        page.setList(orderVoList);
+        return ServerResponse.createBySuccessData(page);
     }
+
+    private List<OrderVo> assembleOrderVoList(List<Order> orderList, Integer userId){
+        List<OrderVo> orderVoList = Lists.newArrayList();
+
+        for(Order order : orderList){
+            List<OrderItem> orderItems = Lists.newArrayList();
+            if(userId == null){ // admin
+                orderItems = orderItemMapper.selectByOrderNo(order.getOrderNo());
+            }else{ // user
+                orderItems = orderItemMapper.selectByOrderNoAndUserId(order.getOrderNo(),userId);
+            }
+            OrderVo orderVo = assembleOrderVo(order,orderItems);
+            orderVoList.add(orderVo);
+        }
+        return orderVoList;
+    }
+
+    //---------------For Administrator ------------------------
 
     @Override
     public ServerResponse<PageInfo> manageList(int pageNum, int pageSize) {
-        return null;
+        PageHelper.startPage(pageNum, pageSize);
+        List<Order> orderList = orderMapper.selectAll();
+        List<OrderVo> orderVoList = assembleOrderVoList(orderList,null);
+        PageInfo pageResult = new PageInfo<>(orderList);
+        pageResult.setList(orderVoList);
+        return ServerResponse.createBySuccessData(pageResult);
     }
 
     @Override
     public ServerResponse<OrderVo> manageDetail(Long orderNo) {
-        return null;
+        Order order = orderMapper.selectByOrderNo(orderNo);
+        if(order == null)
+            return ServerResponse.createByErrorMsg("Cannot find this order.");
+        List<OrderItem> orderItems = orderItemMapper.selectByOrderNo(orderNo);
+        OrderVo orderVo = assembleOrderVo(order,orderItems);
+        return ServerResponse.createBySuccessData(orderVo);
     }
 
     @Override
     public ServerResponse<PageInfo> manageSearch(Long orderNo, int pageNum, int pageSize) {
-        return null;
+        PageHelper.startPage(pageNum, pageSize);
+        Order order = orderMapper.selectByOrderNo(orderNo);
+        if(order == null)
+            return ServerResponse.createByErrorMsg("Cannot find this order.");
+        List<OrderItem> orderItems = orderItemMapper.selectByOrderNo(orderNo);
+        OrderVo orderVo = assembleOrderVo(order,orderItems);
+        PageInfo pageResult = new PageInfo(Lists.newArrayList(order));
+        pageResult.setList(Lists.newArrayList(orderVo));
+        return ServerResponse.createBySuccessData(pageResult);
     }
 
     @Override
     public ServerResponse<String> manageSendGoods(Long orderNo) {
-        return null;
+        Order order = orderMapper.selectByOrderNo(orderNo);
+        if(order == null)
+            return ServerResponse.createByErrorMsg("Cannot find this order.");
+        if(order.getStatus() != Constant.OrderStatus.PAID.getCode())
+            return ServerResponse.createByErrorMsg("The order is unpaid.");
+
+        order.setStatus(Constant.OrderStatus.SHIPPED.getCode());
+        order.setSendTime(new Date());
+        orderMapper.updateByPrimaryKeySelective(order);
+        return ServerResponse.createBySuccessMsg("Goods is sending out successfully.");
     }
 }

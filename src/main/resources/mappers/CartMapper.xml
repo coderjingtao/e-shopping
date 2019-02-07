@@ -159,4 +159,10 @@
     FROM eshop_cart
     WHERE user_id = #{userId}
   </select>
+  <select id="selectCheckedCartItemByUserId" parameterType="int" resultMap="BaseResultMap">
+    SELECT <include refid="Base_Column_List"/>
+    FROM eshop_cart
+    WHERE user_id = #{userId}
+    AND checked = 1
+  </select>
 </mapper>

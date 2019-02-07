@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.servlet.http.HttpServletRequest;
@@ -102,5 +103,72 @@ public class OrderController {
         if(response.isSuccess())
             return ServerResponse.createBySuccessData(true);
         return ServerResponse.createBySuccessData(false);
+    }
+
+    /**
+     * According to the current selected cart items and shipping address, create a order.
+     */
+    @RequestMapping("create.do")
+    @ResponseBody
+    public ServerResponse create(HttpSession session, Integer shippingId){
+        User user = (User)session.getAttribute(Constant.CURRENT_USER);
+        if(user == null){
+            return ServerResponse.createByErrorCodeAndMsg(ResponseCode.NEED_LOGIN.getCode(),"Please login.");
+        }
+        return iOrderService.createOrder(user.getId(),shippingId);
+    }
+
+    /**
+     * Cancel a order by user based on its order NO.
+     */
+    @RequestMapping("cancel.do")
+    @ResponseBody
+    public ServerResponse cancel(HttpSession session, Long orderNo){
+        User user = (User)session.getAttribute(Constant.CURRENT_USER);
+        if(user == null){
+            return ServerResponse.createByErrorCodeAndMsg(ResponseCode.NEED_LOGIN.getCode(),"Please login.");
+        }
+        return iOrderService.cancel(user.getId(),orderNo);
+    }
+
+    /**
+     * Get a order detail info based on its order NO.
+     */
+    @RequestMapping("detail.do")
+    @ResponseBody
+    public ServerResponse detail(HttpSession session, Long orderNo){
+        User user = (User)session.getAttribute(Constant.CURRENT_USER);
+        if(user == null){
+            return ServerResponse.createByErrorCodeAndMsg(ResponseCode.NEED_LOGIN.getCode(),"Please login.");
+        }
+        return iOrderService.getOrderDetail(user.getId(),orderNo);
+    }
+
+    /**
+     * Get a order list with pagination
+     */
+    @RequestMapping("list.do")
+    @ResponseBody
+    public ServerResponse list(HttpSession session,
+                               @RequestParam(value = "pageNum",defaultValue = "1") int pageNum,
+                               @RequestParam(value = "pageSize",defaultValue = "10") int pageSize){
+        User user = (User)session.getAttribute(Constant.CURRENT_USER);
+        if(user == null){
+            return ServerResponse.createByErrorCodeAndMsg(ResponseCode.NEED_LOGIN.getCode(),"Please login.");
+        }
+        return iOrderService.getOrderList(user.getId(),pageNum,pageSize);
+    }
+    /**
+     * Get the products of order from cart for filling in order and confirming order pages.
+     * 展示未支付的订单中的商品列表，用于从购物车到订单生成之间的订单填写页和订单确认页的订单商品展示
+     */
+    @RequestMapping("get_order_products.do")
+    @ResponseBody
+    public ServerResponse getOrderProductsFromCart(HttpSession session){
+        User user = (User)session.getAttribute(Constant.CURRENT_USER);
+        if(user == null){
+            return ServerResponse.createByErrorCodeAndMsg(ResponseCode.NEED_LOGIN.getCode(),"Please login.");
+        }
+        return iOrderService.getOrderProductsFromCart(user.getId());
     }
 }

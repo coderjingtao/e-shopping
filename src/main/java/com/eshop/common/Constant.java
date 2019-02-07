@@ -69,6 +69,15 @@ public class Constant {
         public String getValue() {
             return value;
         }
+
+        public static OrderStatus codeOf(int code){
+            for(OrderStatus status : values()){
+                if(status.getCode() == code){
+                    return status;
+                }
+            }
+            throw new RuntimeException("No such Order Status.");
+        }
     }
 
     public interface AlipayCallback{
@@ -94,6 +103,32 @@ public class Constant {
         }
         public String getValue() {
             return value;
+        }
+    }
+
+    public enum PaymentType{
+        ONLINE_PAY(1,"online pay");
+
+        PaymentType(int code,String value){
+            this.code = code;
+            this.value = value;
+        }
+        private int code;
+        private String value;
+        public int getCode() {
+            return code;
+        }
+        public String getValue() {
+            return value;
+        }
+
+        public static PaymentType codeOf(int code){
+            for(PaymentType type : values()){
+                if(type.getCode() == code){
+                    return type;
+                }
+            }
+            throw new RuntimeException("No such Payment Type.");
         }
     }
 }
