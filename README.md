@@ -3,6 +3,7 @@ One stardardized backend of a B2C ecommerce system based on Java SSM structure
 
 ## Function modules
 - User management
+
 - Category management
 - Product management
 - Cart management
