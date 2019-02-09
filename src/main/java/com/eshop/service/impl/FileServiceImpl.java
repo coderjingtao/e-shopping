@@ -38,6 +38,7 @@ public class FileServiceImpl implements IFileService {
 
         //3. Create a empty File with the new name and the path created above.
         File targetFile = new File(path,uploadFileName);
+        targetFile.setWritable(true,false);
 
         try {
             //4. Put the uploading file content to the target file
