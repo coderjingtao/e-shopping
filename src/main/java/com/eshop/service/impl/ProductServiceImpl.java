@@ -149,7 +149,7 @@ public class ProductServiceImpl implements IProductService {
             ProductVo productVo = assembleProductVo(product);
             productVoList.add(productVo);
         }
-        PageInfo<ProductVo> pageResult = new PageInfo<>(productVoList);//paginate using original product list
+        PageInfo pageResult = new PageInfo<>(productVoList);//paginate using original product list
         //pageResult.setList(productVoList); //the content of pagination using converted product VO list
         return ServerResponse.createBySuccessData(pageResult);
     }
