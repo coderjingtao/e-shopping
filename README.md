@@ -1,7 +1,7 @@
 # e-shopping
 One standardized backend of a B2C e-commerce system based on Java
 ## Project display
-www.365buy.ml
+www.365shop.ml
 ## Framework
 - SpringMVC4.0
 - Spring4.0
