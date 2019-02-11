@@ -1,5 +1,5 @@
 # e-shopping
-One standardized backend of a B2C e-commerce system based on Java
+One RESTful and standardized backend of a B2C e-commerce Web Service based on Java.
 ## Project display
 www.365shop.ml
 ## Framework
@@ -14,7 +14,7 @@ www.365shop.ml
 - pojo: database object
 - service: business logical object
 - util: utilities / tools
-- vo : view object for display
+- vo: view object for display
 
 ## Security
 - User's transverse privileges protection
@@ -44,7 +44,7 @@ www.365shop.ml
     - Mysql
     - Git 2.8.0
 - Configuration
-    - iptables : open ports for ftp or remote debug
+    - iptables: open ports for FTP or remote debug
     - Linux Shell: for automatic deployment
 
 ## Functionality
@@ -100,5 +100,4 @@ www.365shop.ml
     - query payment status
 
 ## Author's note
-I will gradually improve this project to a distributed system, and eventually, I think it can be used as a large e-commerce platform. If you have a better idea or some suggestions, please contact me, my email is liujingtao529@gmail.com
-
+I will gradually improve this project to a distributed system with redis and load balancer, and eventually, I think it can handle large traffic as a comprehensive e-commerce platform. If you have a better idea or some suggestions, please contact me: liujingtao529@gmail.com

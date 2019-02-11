@@ -2,7 +2,7 @@
 <body>
 <h1>Hello! Welcome to backend of the E-SHOP system.</h1>
 
-<h4>My name is Jingtao Liu. This is one standardized backend of a B2C e-commerce system based on Java</h4>
+<h4>My name is Jingtao Liu. One RESTful and standardized backend of a B2C e-commerce Web Service based on Java.</h4>
 <h4>If you want the interfaces to test this system, please email me: <a href="liujingtao529@gmail.com">liujingtao529@gmail.com</a> </h4>
 
 <h2 id="projectdisplay">Project Code</h2>
@@ -220,7 +220,7 @@
 
 <h2 id="authorsnote">Author's note</h2>
 
-<p>I will gradually improve this project to a distributed system, and eventually, I think it can be used as a large e-commerce platform.</p>
+<p>I will gradually improve this project to a distributed system with redis and load balancer, and eventually, I think it can handle large traffic as a comprehensive e-commerce platform. If you have a better idea or some suggestions, please contact me: liujingtao529@gmail.com</p>
 
 <h2>Uploading Test</h2>
 <hr>
