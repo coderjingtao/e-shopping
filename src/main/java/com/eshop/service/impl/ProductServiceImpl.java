@@ -149,8 +149,8 @@ public class ProductServiceImpl implements IProductService {
             ProductVo productVo = assembleProductVo(product);
             productVoList.add(productVo);
         }
-        PageInfo pageResult = new PageInfo<>(productVoList);//paginate using original product list
-        //pageResult.setList(productVoList); //the content of pagination using converted product VO list
+        PageInfo pageResult = new PageInfo<>(productList);//paginate using original product list
+        pageResult.setList(productVoList); //the content of pagination using converted product VO list
         return ServerResponse.createBySuccessData(pageResult);
     }
 
@@ -180,7 +180,8 @@ public class ProductServiceImpl implements IProductService {
             ProductVo productVo = assembleProductVo(product);
             productVoList.add(productVo);
         }
-        PageInfo pageResult = new PageInfo<>(productVoList);
+        PageInfo pageResult = new PageInfo<>(productList);
+        pageResult.setList(productVoList);
         return ServerResponse.createBySuccessData(pageResult);
     }
 
@@ -240,7 +241,8 @@ public class ProductServiceImpl implements IProductService {
             ProductVo productVo = assembleProductVo(product);
             productVoList.add(productVo);
         }
-        PageInfo pageInfo = new PageInfo<>(productVoList);
+        PageInfo pageInfo = new PageInfo<>(productList);
+        pageInfo.setList(productVoList);
         return ServerResponse.createBySuccessData(pageInfo);
     }
 }

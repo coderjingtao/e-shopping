@@ -1,5 +1,6 @@
 # e-shopping
-One RESTful and standardized backend of a B2C e-commerce Web Service based on Java.
+One RESTful and standardized backend of a B2C e-commerce Web Service based on Java
+SSM frameworks. I am now persistently building it for a standardized solution for small e-commerce enterprises from one-server solution to distributed system solution.
 ## Project display
 www.365shop.ml
 ## Framework
